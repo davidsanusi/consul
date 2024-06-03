@@ -316,12 +316,13 @@ func (c *controller) AddTrigger(request Request, trigger func(ctx context.Contex
 	ctx, cancel := context.WithCancel(c.groupCtx)
 
 	c.triggerMutex.Lock()
+	defer c.triggerMutex.Unlock()
+	
 	oldCancel, ok := c.triggers[request]
 	if ok {
 		oldCancel()
 	}
 	c.triggers[request] = cancel
-	c.triggerMutex.Unlock()
 
 	c.group.Go(func() error {
 		if err := trigger(ctx); err != nil {
@@ -340,12 +341,13 @@ func (c *controller) AddTrigger(request Request, trigger func(ctx context.Contex
 // RemoveTrigger removes the triggering function associated with the Request object
 func (c *controller) RemoveTrigger(request Request) {
 	c.triggerMutex.Lock()
+	defer c.triggerMutex.Unlock()
+	
 	cancel, ok := c.triggers[request]
 	if ok {
 		cancel()
 		delete(c.triggers, request)
 	}
-	c.triggerMutex.Unlock()
 }
 
 func (c *controller) wait() {
